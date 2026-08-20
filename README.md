@@ -52,6 +52,11 @@ Every SDK implements all of these, identically. Full detail in [`spec/ERGONOMICS
 E3 and E4 are one mechanism. E4 is only safe because the API guarantees idempotent replay — without
 that guarantee, an offline retry queue is a double-spend generator.
 
+## Trying it
+
+See [TESTING.md](TESTING.md) for what is ready for someone outside the team to use — the TypeScript
+SDK is, the Unity editor surface is not yet.
+
 ## Getting started
 
 ```bash

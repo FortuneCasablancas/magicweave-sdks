@@ -14,14 +14,18 @@
       "require": "./dist/index.cjs"
     }
   },
-  "files": ["dist", "README.md"],
+  "files": [
+    "dist",
+    "README.md"
+  ],
   "scripts": {
     "generate": "openapi-typescript ../spec/client-openapi.snapshot.json --root-types -o src/generated/schema.ts",
     "generate:check": "openapi-typescript ../spec/client-openapi.snapshot.json --root-types -o /tmp/mw-schema-check.ts && diff -q src/generated/schema.ts /tmp/mw-schema-check.ts",
     "build": "tsup src/index.ts --format esm,cjs --dts --clean",
     "test": "vitest run",
     "test:watch": "vitest",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "prepare": "npm run build"
   },
   "devDependencies": {
     "@types/node": "^22.10.0",
@@ -30,5 +34,13 @@
     "typescript": "^5.7.2",
     "vitest": "^2.1.8"
   },
-  "keywords": ["magicweave", "game", "backend", "leaderboard", "economy", "react-native", "expo"]
+  "keywords": [
+    "magicweave",
+    "game",
+    "backend",
+    "leaderboard",
+    "economy",
+    "react-native",
+    "expo"
+  ]
 }

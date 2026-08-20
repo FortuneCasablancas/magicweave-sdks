@@ -1,0 +1,28 @@
+<!--
+  Compile-verification harness for the engine-independent half of the Unity SDK.
+
+  Runtime/Core/ deliberately has no UnityEngine dependency, so it compiles as a
+  plain netstandard2.1 library. That is what makes it unit-testable without a
+  Unity player loop — and it is why this project exists: without it, the only
+  way to find a C# typo would be to open the Unity editor.
+
+  Runtime/Unity/ and Editor/ are excluded; they reference UnityEngine and are
+  verified in-editor.
+-->
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>netstandard2.1</TargetFramework>
+    <LangVersion>9.0</LangVersion>
+    <Nullable>disable</Nullable>
+    <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+    <AssemblyName>Magicweave.Core</AssemblyName>
+    <RootNamespace>Magicweave</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="../unity/Packages/xyz.magicweave.sdk/Runtime/Core/**/*.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+  </ItemGroup>
+</Project>

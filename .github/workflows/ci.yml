@@ -51,3 +51,14 @@ jobs:
       - run: pip install --quiet pyyaml
       - name: Every scenario is well-formed and covers a known behaviour
         run: python conformance/lint_scenarios.py
+
+  csharp:
+    name: Unity SDK core
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+      - name: Test the engine-independent core
+        run: dotnet test dotnet-verify/Tests/Tests.csproj --nologo

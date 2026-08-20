@@ -15,3 +15,7 @@ unity/[Uu]serSettings/
 **/magicweave.local.json
 .env
 .env.*
+
+# dotnet-verify build output
+dotnet-verify/**/bin/
+dotnet-verify/**/obj/

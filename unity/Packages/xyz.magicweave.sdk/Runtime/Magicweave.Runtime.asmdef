@@ -1,0 +1,16 @@
+{
+  "name": "Magicweave.Runtime",
+  "rootNamespace": "Magicweave",
+  "references": [
+    "Magicweave.Generated"
+  ],
+  "includePlatforms": [],
+  "excludePlatforms": [],
+  "allowUnsafeCode": false,
+  "overrideReferences": true,
+  "autoReferenced": true,
+  "noEngineReferences": false,
+  "precompiledReferences": [
+    "Newtonsoft.Json.dll"
+  ]
+}

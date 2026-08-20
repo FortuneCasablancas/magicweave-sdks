@@ -1,0 +1,7 @@
+{
+  "name": "Magicweave.Editor",
+  "rootNamespace": "Magicweave.Editor",
+  "references": ["Magicweave.Runtime"],
+  "includePlatforms": ["Editor"],
+  "autoReferenced": true
+}

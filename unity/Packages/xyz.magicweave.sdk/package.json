@@ -1,0 +1,32 @@
+{
+  "name": "xyz.magicweave.sdk",
+  "version": "0.1.0",
+  "displayName": "Magicweave",
+  "description": "Game backend for Unity \u2014 wallets, currencies, inventory, shop, leaderboards, spin wheels and realtime. Offline-safe writes, environment switching from the inspector, no plumbing to write.",
+  "unity": "2021.3",
+  "documentationUrl": "https://docs.magicweave.xyz",
+  "changelogUrl": "https://github.com/magicweave/magicweave-sdks/blob/main/unity/CHANGELOG.md",
+  "licensesUrl": "https://github.com/magicweave/magicweave-sdks/blob/main/LICENSE",
+  "keywords": [
+    "magicweave",
+    "backend",
+    "leaderboard",
+    "economy",
+    "liveops",
+    "multiplayer"
+  ],
+  "author": {
+    "name": "Magicweave",
+    "url": "https://www.magicweave.xyz"
+  },
+  "dependencies": {
+    "com.unity.nuget.newtonsoft-json": "3.2.1"
+  },
+  "samples": [
+    {
+      "displayName": "Quick Start",
+      "description": "Sign in, read a wallet, submit a score, and watch the offline queue drain.",
+      "path": "Samples~/QuickStart"
+    }
+  ]
+}

@@ -1,0 +1,308 @@
+# Conformance scenarios — the executable form of spec/ERGONOMICS.md.
+#
+# Every SDK ships a thin runner that executes this file against a live TESTING
+# environment (create one with `mw init`). One spec, four implementations, one
+# set of assertions: this is the mechanism that stops Unity and Flutter quietly
+# disagreeing about what "retry" means.
+#
+# A runner must:
+#   1. build a client from MW_CLIENT_ID / MW_CLIENT_SECRET / MW_BASE_URL
+#   2. execute each scenario's steps in order, in a fresh client unless
+#      `reuse_client: true`
+#   3. report pass/fail per scenario with the failing assertion
+#
+# Steps are intentionally small and declarative. Anything a step cannot express
+# belongs in the SDK's own unit tests, not here.
+
+version: 1
+
+defaults:
+  # Applied to every scenario unless overridden.
+  timeout_ms: 15000
+  cleanup: true
+
+scenarios:
+  # ── E1 ────────────────────────────────────────────────────────────────────
+  - id: e1-connect
+    behaviour: E1
+    title: A client built from three values can reach the API
+    steps:
+      - call: healthz
+        expect:
+          status: 200
+          body_contains: { service: client-api }
+      - assert: resolved_root_is_reachable
+
+  - id: e1-single-probe
+    behaviour: E1
+    title: The layout probe happens once, not once per call
+    steps:
+      - parallel:
+          - call: wallet.get
+          - call: stats.get
+          - call: leaderboards.list
+      - assert: healthz_request_count
+        equals: 1
+
+  - id: e1-missing-credentials
+    behaviour: E1
+    title: Missing credentials fail at construction, not at first use
+    steps:
+      - construct: { clientId: "", clientSecret: "x", baseUrl: "$MW_BASE_URL" }
+        expect_error: configuration
+
+  # ── E2 ────────────────────────────────────────────────────────────────────
+  - id: e2-otp-signin
+    behaviour: E2
+    title: OTP sign-in stores a session that later calls use
+    steps:
+      - call: auth.requestOtp
+        args: { email: "$MW_TEST_PLAYER_EMAIL" }
+      - call: auth.verifyOtp
+        args: { email: "$MW_TEST_PLAYER_EMAIL", otp: "$MW_TEST_PLAYER_OTP" }
+      - assert: is_signed_in
+      - call: wallet.get
+        expect:
+          status: 200
+          sent_header: { authorization: "Bearer *" }
+
+  - id: e2-session-survives-restart
+    behaviour: E2
+    title: A new client on the same storage resumes the session
+    steps:
+      - call: auth.verifyOtp
+        args: { email: "$MW_TEST_PLAYER_EMAIL", otp: "$MW_TEST_PLAYER_OTP" }
+      - restart_client: { keep_storage: true }
+      - assert: is_signed_in
+      - call: wallet.get
+        expect: { status: 200 }
+
+  - id: e2-refresh-on-401
+    behaviour: E2
+    title: An expired access token refreshes once and replays the request
+    steps:
+      - call: auth.verifyOtp
+        args: { email: "$MW_TEST_PLAYER_EMAIL", otp: "$MW_TEST_PLAYER_OTP" }
+      - corrupt_access_token: true
+      - call: wallet.get
+        expect: { status: 200 }
+      - assert: refresh_request_count
+        equals: 1
+
+  - id: e2-single-flight-refresh
+    behaviour: E2
+    title: Concurrent 401s produce exactly one refresh
+    steps:
+      - call: auth.verifyOtp
+        args: { email: "$MW_TEST_PLAYER_EMAIL", otp: "$MW_TEST_PLAYER_OTP" }
+      - corrupt_access_token: true
+      - parallel:
+          - call: wallet.get
+          - call: stats.get
+          - call: currency.balances
+          - call: leaderboards.list
+      - assert: refresh_request_count
+        equals: 1
+
+  - id: e2-external-mode
+    behaviour: E2
+    title: A non-network project identifies the player by header
+    requires: non_network_environment
+    steps:
+      - construct: { mode: external, externalUserId: "conformance-player" }
+      - call: wallet.get
+        expect:
+          status: 200
+          sent_header: { x-external-user-id: "conformance-player" }
+          absent_header: [authorization]
+
+  # ── E3 ────────────────────────────────────────────────────────────────────
+  - id: e3-key-is-sent
+    behaviour: E3
+    title: Every write carries an idempotency key without the caller supplying one
+    steps:
+      - signed_in: true
+      - call: shop.purchase
+        args: { listingKey: "$MW_TEST_LISTING_KEY" }
+        expect:
+          sent_header: { idempotency-key: "*" }
+          absent_response_header: [x-mw-idempotency-generated]
+
+  - id: e3-body-transport-for-game
+    behaviour: E3
+    title: /game writes carry the key in the body, not the header
+    steps:
+      - signed_in: true
+      - call: game.record
+        args: { score: 10 }
+        expect:
+          sent_body_has: [idempotency_key]
+          absent_header: [idempotency-key]
+
+  - id: e3-replay-is-not-double-applied
+    behaviour: E3
+    title: Replaying a write with the same key applies it once
+    steps:
+      - signed_in: true
+      - call: currency.balances
+        capture: { before: "balances" }
+      - call: shop.purchase
+        args: { listingKey: "$MW_TEST_LISTING_KEY", idempotencyKey: "conformance-fixed-key" }
+      - call: shop.purchase
+        args: { listingKey: "$MW_TEST_LISTING_KEY", idempotencyKey: "conformance-fixed-key" }
+      - call: currency.balances
+        capture: { after: "balances" }
+      - assert: balance_delta_equals_one_purchase
+
+  - id: e3-crash-replays-same-key
+    behaviour: E3
+    title: A write persisted before a crash replays with its original key
+    steps:
+      - signed_in: true
+      - network: offline
+      - call: shop.purchase
+        args: { listingKey: "$MW_TEST_LISTING_KEY" }
+        expect_error: queued
+        capture: { key: "queued_idempotency_key" }
+      - restart_client: { keep_storage: true }
+      - network: online
+      - call: flush
+      - assert: sent_idempotency_key_equals
+        capture_ref: key
+
+  # ── E4 ────────────────────────────────────────────────────────────────────
+  - id: e4-offline-queue-drains
+    behaviour: E4
+    title: Writes made offline are delivered, in order, on reconnect
+    steps:
+      - signed_in: true
+      - network: offline
+      - call: game.record
+        args: { score: 1 }
+        expect_error: queued
+      - call: game.record
+        args: { score: 2 }
+        expect_error: queued
+      - assert: pending_writes
+        equals: 2
+      - network: online
+      - call: flush
+      - assert: pending_writes
+        equals: 0
+      - assert: delivery_order
+        equals: [1, 2]
+
+  - id: e4-permanent-failure-is-dropped
+    behaviour: E4
+    title: A write that can never succeed does not block the queue behind it
+    steps:
+      - signed_in: true
+      - network: offline
+      - call: shop.purchase
+        args: { listingKey: "definitely-not-a-real-listing" }
+        expect_error: queued
+      - call: game.record
+        args: { score: 7 }
+        expect_error: queued
+      - network: online
+      - call: flush
+      - assert: queue_event
+        event: failed
+        count: 1
+      - assert: queue_event
+        event: sent
+        count: 1
+      - assert: pending_writes
+        equals: 0
+
+  # ── E5 ────────────────────────────────────────────────────────────────────
+  - id: e5-retries-transient
+    behaviour: E5
+    title: A transient failure is retried and eventually succeeds
+    steps:
+      - signed_in: true
+      - inject_failures: { count: 2, status: 503 }
+      - call: wallet.get
+        expect: { status: 200 }
+      - assert: attempt_count
+        equals: 3
+
+  - id: e5-does-not-retry-4xx
+    behaviour: E5
+    title: A 404 is not retried
+    steps:
+      - signed_in: true
+      - call: shop.get
+        args: { listingKey: "definitely-not-a-real-listing" }
+        expect_error: not_found
+      - assert: attempt_count
+        equals: 1
+
+  - id: e5-honours-retry-after
+    behaviour: E5
+    title: Retry-After beats computed backoff
+    steps:
+      - signed_in: true
+      - inject_failures: { count: 1, status: 429, retry_after_seconds: 1 }
+      - call: wallet.get
+        expect: { status: 200 }
+      - assert: slept_at_least_ms
+        equals: 1000
+
+  - id: e5-idempotency-conflict-is-terminal
+    behaviour: E5
+    title: An idempotency conflict is surfaced, never retried
+    steps:
+      - signed_in: true
+      - force_idempotency_conflict: true
+      - call: shop.purchase
+        args: { listingKey: "$MW_TEST_LISTING_KEY" }
+        expect_error: idempotency_conflict
+      - assert: attempt_count
+        equals: 1
+
+  # ── E6 ────────────────────────────────────────────────────────────────────
+  - id: e6-subscribe-receives-init
+    behaviour: E6
+    title: Subscribing yields an immediate snapshot
+    steps:
+      - signed_in: true
+      - realtime_subscribe: { path: "conformance/$RUN_ID" }
+      - assert: received_event
+        event: init
+
+  - id: e6-change-propagates
+    behaviour: E6
+    title: A write beneath a watched path wakes the listener
+    steps:
+      - signed_in: true
+      - realtime_subscribe: { path: "conformance/$RUN_ID" }
+      - realtime_set: { path: "conformance/$RUN_ID/child", value: { ok: true } }
+      - assert: received_event
+        event: change
+        with_value: { ok: true }
+
+  - id: e6-resubscribes-after-drop
+    behaviour: E6
+    title: A dropped socket reconnects and replays subscriptions
+    steps:
+      - signed_in: true
+      - realtime_subscribe: { path: "conformance/$RUN_ID" }
+      - drop_socket: true
+      - wait_for: reconnected
+      - realtime_set: { path: "conformance/$RUN_ID/child", value: { after: "reconnect" } }
+      - assert: received_event
+        event: change
+        with_value: { after: "reconnect" }
+
+  # ── errors ────────────────────────────────────────────────────────────────
+  - id: errors-are-typed
+    behaviour: E5
+    title: The error envelope maps onto SDK error types
+    steps:
+      - signed_in: true
+      - call: shop.purchase
+        args: { listingKey: "$MW_TEST_UNAFFORDABLE_LISTING_KEY" }
+        expect_error: insufficient_balance
+      - assert: error_has_code
+        equals: insufficient_balance

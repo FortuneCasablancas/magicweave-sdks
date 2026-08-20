@@ -1,0 +1,53 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  typescript:
+    name: TypeScript SDK
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: typescript
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: typescript/package-lock.json
+      - run: npm ci
+      - name: Typecheck
+        run: npm run typecheck
+      - name: Test
+        run: npm test
+      - name: Transport is not hand-edited
+        # Regenerating must be a no-op. If this fails, someone edited generated
+        # code — revert the edit and fix the spec or the template instead.
+        run: npm run generate:check
+
+  spec:
+    name: Spec is current
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Snapshot matches the published client API
+        # Non-fatal on a PR from a fork, where the live API may be unreachable.
+        run: ./scripts/sync-spec.sh --check --url "${MW_OPENAPI_URL:-https://api.magicweave.xyz/openapi.json}"
+        continue-on-error: true
+
+  conformance-lint:
+    name: Conformance scenarios parse
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - run: pip install --quiet pyyaml
+      - name: Every scenario is well-formed and covers a known behaviour
+        run: python conformance/lint_scenarios.py

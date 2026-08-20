@@ -1,0 +1,17 @@
+node_modules/
+dist/
+*.tsbuildinfo
+.DS_Store
+
+# Unity build artefacts. The generated C# under Runtime/Generated IS committed.
+unity/[Ll]ibrary/
+unity/[Tt]emp/
+unity/[Oo]bj/
+unity/[Bb]uild/
+unity/[Ll]ogs/
+unity/[Uu]serSettings/
+
+# Local credentials — never commit an environment secret.
+**/magicweave.local.json
+.env
+.env.*

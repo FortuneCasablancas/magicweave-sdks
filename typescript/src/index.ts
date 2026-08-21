@@ -64,3 +64,22 @@ export type {
 
 export type { WriteOptions } from "./resources/index.js";
 export type * from "./generated/helpers.js";
+
+// Ad monetization runner (WS-D). Adapters live at "@magicweave/sdk/ads/web" and
+// "@magicweave/sdk/ads/react-native" — kept off the root so React Native never
+// leaks into a web bundle.
+export { createAdsClient } from "./ads/runner.js";
+export type { AdsClient, AdsClientOptions } from "./ads/runner.js";
+export type {
+  AdAdapter,
+  AdKind,
+  AdPlacementConfig,
+  AdReason,
+  AdResult,
+  AdShowStatus,
+  AdsApi,
+  IntentResult,
+  ShowInput,
+  VerificationLevel,
+  WaterfallEntry,
+} from "./ads/types.js";

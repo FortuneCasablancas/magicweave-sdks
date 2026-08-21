@@ -5,8 +5,9 @@
   "description": "Game backend for Unity \u2014 wallets, currencies, inventory, shop, leaderboards, spin wheels and realtime. Offline-safe writes, environment switching from the inspector, no plumbing to write.",
   "unity": "2021.3",
   "documentationUrl": "https://docs.magicweave.xyz",
-  "changelogUrl": "https://github.com/magicweave/magicweave-sdks/blob/main/unity/CHANGELOG.md",
-  "licensesUrl": "https://github.com/magicweave/magicweave-sdks/blob/main/LICENSE",
+  "changelogUrl": "https://github.com/FortuneCasablancas/magicweave-sdks/blob/main/unity/CHANGELOG.md",
+  "licensesUrl": "https://github.com/FortuneCasablancas/magicweave-sdks/blob/main/LICENSE",
+  "license": "MIT",
   "keywords": [
     "magicweave",
     "backend",

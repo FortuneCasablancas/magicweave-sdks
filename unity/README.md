@@ -12,7 +12,7 @@ connected. Nothing else to configure.
 Package Manager → **Add package from git URL**:
 
 ```
-https://github.com/magicweave/magicweave-sdks.git?path=/unity/Packages/xyz.magicweave.sdk
+https://github.com/magicweave/magicweave-sdks.git?path=/unity/Packages/xyz.magicweave.sdk#unity-v0.1.0
 ```
 
 Requires Unity 2021.3+ and `com.unity.nuget.newtonsoft-json` (resolved automatically).

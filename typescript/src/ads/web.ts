@@ -17,6 +17,12 @@ export interface H5AdapterOptions {
   testMode?: boolean;
   /** Safety-net timeout (ms) if the SDK never calls adBreakDone. Default 30_000. */
   timeoutMs?: number;
+  /**
+   * Timeout (ms) for loading adsbygoogle.js. A blocked/pending script (ad
+   * blocker, network, CSP) fires neither onload nor onerror, so without this
+   * the load — and the whole rewarded flow — hangs forever. Default 8_000.
+   */
+  loadTimeoutMs?: number;
 }
 
 function mapStatus(st: unknown): AdShowStatus {
@@ -28,6 +34,7 @@ function mapStatus(st: unknown): AdShowStatus {
 
 export function createH5Adapter(options: H5AdapterOptions = {}): AdAdapter {
   const timeoutMs = options.timeoutMs ?? 30_000;
+  const loadTimeoutMs = options.loadTimeoutMs ?? 8_000;
   let loaded: Promise<void> | null = null;
 
   function ensureLoaded(clientId: string): Promise<void> {
@@ -48,7 +55,14 @@ export function createH5Adapter(options: H5AdapterOptions = {}): AdAdapter {
         encodeURIComponent(clientId);
       s.crossOrigin = "anonymous";
       if (options.testMode) s.setAttribute("data-adbreak-test", "on");
+      // A blocked/pending script never fires onload OR onerror — without this
+      // timer ensureLoaded (and the whole rewarded flow) would hang forever.
+      const loadTimer = setTimeout(() => {
+        loaded = null; // allow a retry later
+        reject(new Error("adsbygoogle load timed out"));
+      }, loadTimeoutMs);
       s.onload = () => {
+        clearTimeout(loadTimer);
         try {
           window.adConfig!({ preloadAdBreaks: "on", sound: "on", onReady() {} });
         } catch {
@@ -57,6 +71,7 @@ export function createH5Adapter(options: H5AdapterOptions = {}): AdAdapter {
         resolve();
       };
       s.onerror = () => {
+        clearTimeout(loadTimer);
         loaded = null; // allow a retry later
         reject(new Error("adsbygoogle failed to load"));
       };

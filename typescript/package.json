@@ -1,6 +1,6 @@
 {
   "name": "@magicweave/sdk",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Magicweave game backend SDK for TypeScript, React Native and Expo",
   "license": "MIT",
   "type": "module",

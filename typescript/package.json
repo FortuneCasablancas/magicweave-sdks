@@ -1,6 +1,6 @@
 {
   "name": "@magicweave/sdk",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Magicweave game backend SDK for TypeScript, React Native and Expo",
   "license": "MIT",
   "type": "module",
@@ -12,6 +12,16 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js",
       "require": "./dist/index.cjs"
+    },
+    "./ads/web": {
+      "types": "./dist/ads/web.d.ts",
+      "import": "./dist/ads/web.js",
+      "require": "./dist/ads/web.cjs"
+    },
+    "./ads/react-native": {
+      "types": "./dist/ads/react-native.d.ts",
+      "import": "./dist/ads/react-native.js",
+      "require": "./dist/ads/react-native.cjs"
     }
   },
   "files": [
@@ -21,7 +31,7 @@
   "scripts": {
     "generate": "openapi-typescript ../spec/client-openapi.snapshot.json --root-types -o src/generated/schema.ts",
     "generate:check": "openapi-typescript ../spec/client-openapi.snapshot.json --root-types -o /tmp/mw-schema-check.ts && diff -q src/generated/schema.ts /tmp/mw-schema-check.ts",
-    "build": "tsup src/index.ts --format esm,cjs --dts --clean",
+    "build": "tsup src/index.ts src/ads/web.ts src/ads/react-native.ts --format esm,cjs --dts --clean",
     "test": "vitest run",
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit",
@@ -40,7 +50,16 @@
     "backend",
     "leaderboard",
     "economy",
+    "ads",
     "react-native",
     "expo"
-  ]
+  ],
+  "peerDependencies": {
+    "react-native-google-mobile-ads": "*"
+  },
+  "peerDependenciesMeta": {
+    "react-native-google-mobile-ads": {
+      "optional": true
+    }
+  }
 }

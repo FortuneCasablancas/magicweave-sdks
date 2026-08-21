@@ -511,6 +511,11 @@ export class AdsResource {
       idempotencyKey: options.idempotencyKey,
     });
   }
+
+  /** Report a fill / no-fill / display-only impression; may grant a no-fill fallback. */
+  signal(input: Record<string, unknown>): Promise<unknown> {
+    return this.t.write({ method: "POST", path: "/ads/signal", body: input });
+  }
 }
 
 function encode(segment: string): string {
